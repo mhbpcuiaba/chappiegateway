@@ -21,13 +21,14 @@ public class GatewayApplication {
             server.stop();
         }));
 
-        server.start().handle((result, throwable) -> {
-            if (throwable != null) {
-                log.error("Failed to start ChappieGateway", throwable);
-                System.exit(1);
-            }
-            return null;
-        }).join();
+        server.start()
+                .thenRun(() -> log.info("ChappieGateway has started successfully!!!"))
+                .exceptionally( throwable -> {
+                    log.error("Failed to start", throwable);
+                    System.exit(1);
+                    return null;
+                }).join();
+
     }
 
     private static void printBanner() {
@@ -41,7 +42,4 @@ public class GatewayApplication {
     """;
         System.out.println(banner);
     }
-
-
-
 }
