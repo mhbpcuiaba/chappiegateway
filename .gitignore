@@ -1,3 +1,16 @@
+# Maven build
 target/
+*/target/
+
+# IntelliJ / Eclipse / VSCode
 .idea/
 *.iml
+*.class
+.DS_Store
+
+# Logs
+*.log
+
+# Dependency-reduced pom
+dependency-reduced-pom.xml
+
