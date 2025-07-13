@@ -51,5 +51,15 @@ We aim to make **ChappieGateway** not only a learning playground but also a soli
 - Maven 3.9+
 
 ### Build
+
 ```bash
+
 mvn clean package
+
+chappiegateway-core-0.1.0-SNAPSHOT.jar
+
+java -jar chappiegateway-core/target/chappiegateway-core-0.1.0-SNAPSHOT.jar
+
+curl -i http://localhost:8080/health
+
+```
