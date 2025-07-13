@@ -1,5 +1,9 @@
 package com.chappiegateway.core;
 
+import com.chappiegateway.core.handler.AiInferHandler;
+import com.chappiegateway.core.handler.HealthHandler;
+import com.chappiegateway.core.http.RoutingHandler;
+import com.chappiegateway.core.router.Router;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -33,7 +37,7 @@ public class GatewayServer {
             new ServerBootstrap()
                     .group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
-                    .childHandler(new HttpServerInitializer())
+                    .childHandler(new HttpServerInitializer(getBasicRouter()))
                     .bind(host, port)
                     .addListener((ChannelFutureListener) bindFuture -> {
                         if (bindFuture.isSuccess()) {
@@ -55,6 +59,13 @@ public class GatewayServer {
         return completableFuture;
     }
 
+    private static Router getBasicRouter() {
+        return Router.builder()
+                .get("/health", new HealthHandler())
+                .post("/ai/infer", new AiInferHandler())
+                .build();
+    }
+
     public void stop() {
         log.info("Shutting down gracefully...");
         bossGroup.shutdownGracefully();
@@ -63,43 +74,17 @@ public class GatewayServer {
 
     static class HttpServerInitializer extends ChannelInitializer<SocketChannel> {
 
+        private final Router router;
+
+        public HttpServerInitializer(Router router) {
+            this.router = router;
+        }
         @Override
         protected void initChannel(SocketChannel socketChannel) {
             ChannelPipeline channelPipeline = socketChannel.pipeline();
             channelPipeline.addLast(new HttpServerCodec());
             channelPipeline.addLast(new HttpObjectAggregator(65536));
-            channelPipeline.addLast(new RoutingHandler());
+            channelPipeline.addLast(new RoutingHandler(router));
         }
     }
-
-    static class RoutingHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
-
-        @Override
-        protected void channelRead0(ChannelHandlerContext channelHandlerContext, FullHttpRequest fullHttpRequest) {
-            var uri = fullHttpRequest.uri();
-            log.info("Received request: {} {}", fullHttpRequest.method(), uri);
-            var defaultFullHttpResponse = new DefaultFullHttpResponse(
-                    HttpVersion.HTTP_1_1,
-                    HttpResponseStatus.OK,
-                    channelHandlerContext.alloc().buffer().writeBytes("Hello from ChappieGateway!".getBytes())
-            );
-
-            defaultFullHttpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain");
-            defaultFullHttpResponse.headers().setInt(HttpHeaderNames.CONTENT_LENGTH, defaultFullHttpResponse.content().readableBytes());
-
-            if (HttpUtil.isKeepAlive(fullHttpRequest)) {
-                defaultFullHttpResponse.headers().set(HttpHeaderNames.CONNECTION,  HttpHeaderValues.KEEP_ALIVE);
-                channelHandlerContext.writeAndFlush(defaultFullHttpResponse);
-            } else {
-                channelHandlerContext.writeAndFlush(defaultFullHttpResponse).addListener(ChannelFutureListener.CLOSE);
-            }
-        }
-
-        @Override
-        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-            log.error("Pipeline error", cause);
-            ctx.close();
-        }
-    }
-
 }

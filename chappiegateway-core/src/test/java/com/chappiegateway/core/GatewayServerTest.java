@@ -41,11 +41,11 @@ class GatewayServerTest {
 
     @Test
     void respondsToHttpRequest() throws Exception {
-        String body = Request.get("http://127.0.0.1:" + testPort + "/")
+        String body = Request.get("http://127.0.0.1:" + testPort + "/health")
                 .execute()
                 .returnContent()
                 .asString();
 
-        assertThat(body).isEqualTo("Hello from ChappieGateway!");
+        assertThat(body).isEqualTo("Chappie Gateway running fine.");
     }
 }
