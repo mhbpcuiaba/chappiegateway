@@ -185,6 +185,58 @@ Hello from upstream service
 - messaging systems
 
 
+# Quick Demo
+
+You can quickly test the gateway by running the demo server.
+
+Start the Gateway
+
+Run the GatewayServerRunner:
+
+```java
+package com.chappiegateway.core.server;
+
+import com.chappiegateway.core.DemoGatewayHandler;
+
+public class GatewayServerRunner {
+
+    public static void main(String[] args) throws InterruptedException {
+        new GatewayServer(8085, new DemoGatewayHandler()).start();
+    }
+
+}
+```
+
+
+When the server starts you should see:
+
+
+```bash
+ChappieGateway running on port 8085
+
+```
+
+## Send a Test Request
+
+Use curl to call the gateway:
+
+
+```bash
+curl -i localhost:8085/hello
+```
+
+Expected response:
+
+
+```bash
+HTTP/1.1 200 OK
+content-type: text/plain
+content-length: 23
+
+Hello from ChappieGateway
+
+```
+
 # Project Status
 
 Early research project focused on understanding Netty and gateway internals.

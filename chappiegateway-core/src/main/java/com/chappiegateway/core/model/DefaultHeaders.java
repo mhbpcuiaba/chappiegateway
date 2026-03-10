@@ -1,5 +1,7 @@
 package com.chappiegateway.core.model;
 
+import io.netty.handler.codec.http.HttpHeaders;
+
 import java.util.*;
 
 public final class DefaultHeaders implements Headers {
@@ -38,5 +40,19 @@ public final class DefaultHeaders implements Headers {
         Map<String, List<String>> copy = new HashMap<>(values);
         copy.computeIfAbsent(name.toLowerCase(), k -> new ArrayList<>()).add(value);
         return new DefaultHeaders(copy);
+    }
+
+    public static Headers fromNetty(HttpHeaders nettyHeaders) {
+
+        Map<String, List<String>> map = new HashMap<>();
+
+        for (Map.Entry<String, String> entry : nettyHeaders) {
+            String name = entry.getKey().toLowerCase();
+            String value = entry.getValue();
+
+            map.computeIfAbsent(name, k -> new ArrayList<>()).add(value);
+        }
+
+        return new DefaultHeaders(Map.copyOf(map));
     }
 }
