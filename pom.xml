@@ -9,8 +9,6 @@
 
     <modules>
         <module>chappiegateway-core</module>
-        <module>examples</module>
-        <module>benchmark</module>
     </modules>
 
     <properties>
