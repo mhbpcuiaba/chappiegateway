@@ -45,7 +45,7 @@ public final class AsyncUpstreamTerminalHandler implements AsyncTerminalHandler 
                     return new OutboundResponse(
                             upRes.status(),
                             upRes.headers(),
-                            Optional.of(body),
+                            Optional.ofNullable(body),
                             request.attributes()
                     );
                 } );

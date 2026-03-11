@@ -206,7 +206,12 @@ public class GatewayServerRunner {
 
 }
 ```
+or 
 
+
+```bash
+java -jar chappiegateway-core/target/chappiegateway-core-0.1.0-SNAPSHOT.jar
+```
 
 When the server starts you should see:
 
