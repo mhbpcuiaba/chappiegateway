@@ -6,6 +6,7 @@ import com.chappiegateway.core.model.InboundRequest;
 import com.chappiegateway.core.model.OutboundResponse;
 import com.chappiegateway.core.routing.Router;
 import com.chappiegateway.core.routing.RouteMatch;
+import com.chappiegateway.core.routing.RoutingAttributes;
 
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -28,7 +29,7 @@ public final class RoutingFilter implements AsyncFilter {
         }
 
         InboundRequest updated =
-                request.withAttribute("routeMatch", match.get());
+                request.withAttribute(RoutingAttributes.ROUTE_MATCH, match.get());
 
         return chain.proceed(ctx, updated);
 

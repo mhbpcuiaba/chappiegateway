@@ -3,8 +3,10 @@ package com.chappiegateway.core.execution;
 import com.chappiegateway.core.model.InboundRequest;
 import com.chappiegateway.core.model.OutboundResponse;
 import com.chappiegateway.core.routing.RouteMatch;
+import com.chappiegateway.core.routing.RoutingAttributes;
 import com.chappiegateway.core.upstream.AsyncUpstreamClient;
 import com.chappiegateway.core.upstream.UpstreamRequest;
+import com.chappiegateway.core.util.ByteBufUtils;
 
 import java.net.URI;
 import java.util.Optional;
@@ -21,7 +23,7 @@ public final class AsyncUpstreamTerminalHandler implements AsyncTerminalHandler 
     @Override
     public CompletionStage<OutboundResponse> handle(RequestContext ctx, InboundRequest request) {
         RouteMatch match = request.attributes()
-                .get("routeMatch", RouteMatch.class)
+                .get(RoutingAttributes.ROUTE_MATCH, RouteMatch.class)
                 .orElseThrow(() -> new IllegalStateException("Missing RouteMatch"));
 
         URI uri = match.upstreamBaseUri().resolve(request.path());
@@ -36,12 +38,7 @@ public final class AsyncUpstreamTerminalHandler implements AsyncTerminalHandler 
 
         return upstream.execute(ctx, upstreamRequest)
                 .thenApply(upRes -> {
-                    byte[] body = null;
-
-                    if (upRes.body() != null) {
-                        body = new byte[upRes.body().readableBytes()];
-                        upRes.body().readBytes(body);
-                    }
+                    byte[] body = ByteBufUtils.toByteArray(upRes.body());
                     return new OutboundResponse(
                             upRes.status(),
                             upRes.headers(),

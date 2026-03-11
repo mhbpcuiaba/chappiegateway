@@ -43,36 +43,43 @@ This project focuses on understanding:
 ChappieGateway processes requests through an asynchronous gateway pipeline designed around Netty’s non-blocking event loop model.
 
 ```asciidoc
-                 +-------------------+
-Client Request → |  Netty HTTP Server |
-                 +-------------------+
-                            │
-                            ▼
-                 +--------------------+
-                 | AsyncGatewayHandler |
-                 +--------------------+
-                            │
-                            ▼
-                 +----------------------+
-                 |  Async Filter Chain  |
-                 +----------------------+
-                   │        │        │
-                   ▼        ▼        ▼
-              Logging   Timeout   RouteCheck
-               Filter    Filter     Filter
-                            │
-                            ▼
-                     +-------------+
-                     |   Router    |
-                     +-------------+
-                            │
-                            ▼
-                 +---------------------+
-                 | AsyncUpstreamClient |
-                 +---------------------+
-                            │
-                            ▼
-                     Backend Service
+Client Request
+      │
+      ▼
++----------------------+
+| Netty HTTP Server    |
++----------------------+
+      │
+      ▼
++----------------------+
+| NettyGatewayAdapter  |
++----------------------+
+      │
+      ▼
++----------------------+
+| AsyncGatewayHandler  |
++----------------------+
+      │
+      ▼
++----------------------+
+| Async Filter Chain   |
++----------------------+
+      │
+      ├── LoggingFilter
+      ├── RoutingFilter
+      │
+      ▼
++-----------------------------+
+| AsyncUpstreamTerminalHandler|
++-----------------------------+
+      │
+      ▼
++----------------------+
+| AsyncUpstreamClient  |
++----------------------+
+      │
+      ▼
+Backend Service
 ```
 
 # Architecture Overview
@@ -80,43 +87,45 @@ Client Request → |  Netty HTTP Server |
 Simplified gateway pipeline:
 
 ```bash
-
 Client
    │
    ▼
 Netty HTTP Server
-        │
-        ▼
+   │
+   ▼
+NettyGatewayAdapter
+   │
+   ▼
 AsyncGatewayHandler
-        │
-        ▼
+   │
+   ▼
 DefaultAsyncFilterChain
-        │
-        ├── LoggingFilter
-        ├── TimeoutFilter
-        ├── RouteNotFoundFilter
-        │
-        ▼
-Router
-        │
-        ▼
+   │
+   ├── LoggingFilter
+   ├── RoutingFilter
+   │
+   ▼
+AsyncUpstreamTerminalHandler
+   │
+   ▼
 AsyncUpstreamClient
-        │
-        ▼
+   │
+   ▼
 OutboundResponse
 ```
 
 
 **Responsibilities:**
 
-| Component       | Responsibility                                     |
-| --------------- | -------------------------------------------------- |
-| Netty Server    | Accept connections and decode HTTP requests        |
-| Gateway Handler | Convert Netty requests into internal request model |
-| Filter Chain    | Apply gateway filters                              |
-| Router          | Determine upstream destination                     |
-| Upstream Client | Execute async HTTP call to backend                 |
-
+| Component                    | Responsibility                                     |
+| ---------------------------- | -------------------------------------------------- |
+| Netty Server                 | Accept connections and decode HTTP requests        |
+| NettyGatewayAdapter          | Convert Netty requests into internal request model |
+| AsyncGatewayHandler          | Entry point for gateway pipeline                   |
+| Filter Chain                 | Apply gateway middleware                           |
+| RoutingFilter                | Resolve route and attach `RouteMatch`              |
+| AsyncUpstreamTerminalHandler | Build upstream request and execute it              |
+| AsyncUpstreamClient          | Execute asynchronous upstream calls                |
 
 # Current Features (v0.1)
 
@@ -124,16 +133,19 @@ Minimal working gateway implementation:
 
 - Netty HTTP server
 - Internal request/response model
+- Asynchronous gateway execution pipeline
 - Filter chain
-- Basic routing
+- Programmatic routing
 - Logging filter
-- Mock upstream client
+- Async upstream client abstraction
+- Mock upstream client for testing
 
 
 # Planned Features
 
 Future exploration areas:
 
+- Real HTTP upstream proxy
 - WebSocket proxy
 - Rate limiting
 - Redis distributed rate limiting
@@ -142,23 +154,22 @@ Future exploration areas:
 - Service discovery
 - Backpressure strategies
 
-
 # Running the Gateway
 
 ```bash
 mvn clean package
-java -jar chappiegateway-core/target/chappiegateway-core.jar
+java -jar chappiegateway-core/target/chappiegateway-core-0.1.0-SNAPSHOT.jar
 ```
 
 Server starts on:
 
 
 ```bash
-http://localhost:8080
+http://localhost:8085
 ```
 
 ## Example Request
-curl http://localhost:8080/hello
+curl http://localhost:8085/hello
 
 Response:
 
