@@ -7,6 +7,7 @@ import com.chappiegateway.core.upstream.AsyncUpstreamClient;
 import com.chappiegateway.core.upstream.UpstreamRequest;
 
 import java.net.URI;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 public final class AsyncUpstreamTerminalHandler implements AsyncTerminalHandler {
@@ -32,12 +33,22 @@ public final class AsyncUpstreamTerminalHandler implements AsyncTerminalHandler 
                 request.body()
         );
 
+
         return upstream.execute(ctx, upstreamRequest)
-                .thenApply(upRes -> new OutboundResponse(
-                        upRes.status(),
-                        upRes.headers(),
-                        upRes.bodyOpt(),
-                        request.attributes()
-                ));
+                .thenApply(upRes -> {
+                    byte[] body = null;
+
+                    if (upRes.body() != null) {
+                        body = new byte[upRes.body().readableBytes()];
+                        upRes.body().readBytes(body);
+                    }
+                    return new OutboundResponse(
+                            upRes.status(),
+                            upRes.headers(),
+                            Optional.of(body),
+                            request.attributes()
+                    );
+                } );
+
     }
 }

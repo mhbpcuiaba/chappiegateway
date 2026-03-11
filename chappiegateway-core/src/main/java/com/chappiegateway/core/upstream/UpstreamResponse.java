@@ -1,15 +1,16 @@
 package com.chappiegateway.core.upstream;
 
 import com.chappiegateway.core.model.Headers;
+import io.netty.buffer.ByteBuf;
 
 import java.util.Optional;
 
 public record UpstreamResponse(
         int status,
         Headers headers,
-        byte[] body
+        ByteBuf body
 ) {
-    public Optional<byte[]> bodyOpt() {
+    public Optional<ByteBuf> bodyOpt() {
         return Optional.ofNullable(body);
     }
 }
