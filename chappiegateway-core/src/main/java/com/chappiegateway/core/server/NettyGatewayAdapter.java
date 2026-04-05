@@ -16,6 +16,7 @@ import com.chappiegateway.core.model.*;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
 
+import java.net.ConnectException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
@@ -23,6 +24,7 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 
 import io.netty.handler.codec.http.*;
+import io.netty.handler.timeout.ReadTimeoutException;
 
 
 public class NettyGatewayAdapter extends SimpleChannelInboundHandler<FullHttpRequest> {
@@ -102,5 +104,31 @@ public class NettyGatewayAdapter extends SimpleChannelInboundHandler<FullHttpReq
                 );
 
         ctx.writeAndFlush(res);
+    }
+
+    private void sendError(ChannelHandlerContext ctx, Throwable error) {
+
+        HttpResponseStatus status = mapStatus(error);
+
+        FullHttpResponse response =
+                new DefaultFullHttpResponse(
+                        HttpVersion.HTTP_1_1,
+                        status
+                );
+
+        ctx.writeAndFlush(response);
+    }
+
+    private HttpResponseStatus mapStatus(Throwable error) {
+
+        if (error instanceof ReadTimeoutException) {
+            return HttpResponseStatus.GATEWAY_TIMEOUT; // 504
+        }
+
+        if (error instanceof ConnectException) {
+            return HttpResponseStatus.BAD_GATEWAY; // 502
+        }
+
+        return HttpResponseStatus.BAD_GATEWAY;
     }
 }

@@ -8,28 +8,38 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.timeout.ReadTimeoutHandler;
+import io.netty.handler.timeout.ReadTimeoutException;
 
+import java.net.ConnectException;
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 public final class NettyAsyncUpstreamClient implements AsyncUpstreamClient {
 
+    private static final int CONNECT_TIMEOUT_MS = 2000;
+    private static final int READ_TIMEOUT_SEC = 3;
+
+    private static final int MAX_RETRIES = 1;
     private final EventLoopGroup group = new NioEventLoopGroup();
 
     @Override
-    public CompletionStage<UpstreamResponse> execute(
-            RequestContext requestContext,
-            UpstreamRequest request) {
+    public CompletionStage<UpstreamResponse> execute(RequestContext requestContext, UpstreamRequest request) {
+        //TODO why requestContext? remove?
+        return executeWithRetry(request, 0);
+    }
+
+    private CompletionStage<UpstreamResponse> executeWithRetry(
+            UpstreamRequest request, int retry) {
 
         CompletableFuture<UpstreamResponse> result = new CompletableFuture<>();
 
         URI uri = request.uri();
 
-        Bootstrap bootstrap = new Bootstrap();
-
-        bootstrap.group(group)
+        Bootstrap bootstrap = new Bootstrap().group(group)
                 .channel(NioSocketChannel.class)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECT_TIMEOUT_MS)
                 .handler(new ChannelInitializer<>() {
 
                     @Override
@@ -37,6 +47,7 @@ public final class NettyAsyncUpstreamClient implements AsyncUpstreamClient {
 
                         ch.pipeline()
                                 .addLast(new HttpClientCodec())
+                                .addLast(new ReadTimeoutHandler(READ_TIMEOUT_SEC))
                                 .addLast(new HttpObjectAggregator(1024 * 1024))
                                 .addLast(new SimpleChannelInboundHandler<FullHttpResponse>() {
 
@@ -63,8 +74,13 @@ public final class NettyAsyncUpstreamClient implements AsyncUpstreamClient {
                                             ChannelHandlerContext ctx,
                                             Throwable cause) {
 
-                                        result.completeExceptionally(cause);
                                         ctx.close();
+                                        handleFailure(
+                                                request,
+                                                retry,
+                                                result,
+                                                cause
+                                        );
                                     }
                                 });
                     }
@@ -74,7 +90,13 @@ public final class NettyAsyncUpstreamClient implements AsyncUpstreamClient {
                 .addListener((ChannelFutureListener) future -> {
 
                     if (!future.isSuccess()) {
-                        result.completeExceptionally(future.cause());
+                        handleFailure(
+                                request,
+                                retry,
+                                result,
+                                future.cause()
+                        );
+
                         return;
                     }
 
@@ -107,6 +129,61 @@ public final class NettyAsyncUpstreamClient implements AsyncUpstreamClient {
         return result;
     }
 
+    private void handleFailure(
+            UpstreamRequest request,
+            int retry,
+            CompletableFuture<UpstreamResponse> result,
+            Throwable cause
+    ) {
+
+        if (retry < MAX_RETRIES && isRetryable(cause)) {
+
+            executeWithRetry(request, retry + 1)
+                    .whenComplete((resp, err) -> {
+
+                        if (err != null) {
+                            result.completeExceptionally(err);
+                        } else {
+                            result.complete(resp);
+                        }
+
+                    });
+
+            return;
+        }
+
+        result.complete(toErrorResponse(cause));
+    }
+
+    private boolean isRetryable(Throwable cause) {
+
+        return cause instanceof ConnectException
+                || cause instanceof ReadTimeoutException
+                || cause instanceof java.util.concurrent.TimeoutException;
+    }
+
+    private UpstreamResponse toErrorResponse(Throwable cause) {
+
+        int status;
+
+        if (cause instanceof ReadTimeoutException) {
+            status = 504; // Gateway Timeout
+        } else {
+            status = 502; // Bad Gateway
+        }
+
+        ByteBuf body =
+                Unpooled.copiedBuffer(
+                        ("Upstream error: " + cause.getMessage()).getBytes()
+                );
+
+        return new UpstreamResponse(
+                status,
+                NettyHeadersAdapter.from(new DefaultHttpHeaders()
+                        .set(HttpHeaderNames.CONTENT_TYPE, "text/plain")),
+                body
+        );
+    }
     private int resolvePort(URI uri) {
 
         if (uri.getPort() != -1) {

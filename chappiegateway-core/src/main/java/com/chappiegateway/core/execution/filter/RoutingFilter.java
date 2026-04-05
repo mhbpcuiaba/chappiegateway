@@ -23,7 +23,7 @@ public final class RoutingFilter implements AsyncFilter {
 
     @Override
     public CompletionStage<OutboundResponse> doFilter(RequestContext ctx, InboundRequest request, AsyncFilterChain chain) {
-
+        System.out.println("RoutingFilter: " + request);
         Optional<RouteMatch> match = router.route(request);
 
         if (match.isEmpty()) {

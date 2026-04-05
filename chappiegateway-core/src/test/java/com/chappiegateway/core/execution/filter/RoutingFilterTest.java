@@ -104,9 +104,11 @@ class RoutingFilterTest {
                 new CancellationToken()
         );
 
-        assertThatThrownBy(() ->
-                filter.doFilter(ctx, request, chain)
-        ).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("No route found");
+        CompletionStage<OutboundResponse> outboundResponseCompletionStage = filter.doFilter(ctx, request, chain);
+        outboundResponseCompletionStage.thenAccept(response -> {
+            assertThat(response.status()).isEqualTo(404);
+        });
+
+
     }
 }

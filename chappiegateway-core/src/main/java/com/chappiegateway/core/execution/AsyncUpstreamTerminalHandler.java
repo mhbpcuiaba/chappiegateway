@@ -22,6 +22,8 @@ public final class AsyncUpstreamTerminalHandler implements AsyncTerminalHandler 
 
     @Override
     public CompletionStage<OutboundResponse> handle(RequestContext ctx, InboundRequest request) {
+
+        System.out.println("AsyncUpstreamTerminalHandler hanldes: " + request);
         RouteMatch match = request.attributes()
                 .get(RoutingAttributes.ROUTE_MATCH, RouteMatch.class)
                 .orElseThrow(() -> new IllegalStateException("Missing RouteMatch"));
