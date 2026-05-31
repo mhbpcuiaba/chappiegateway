@@ -9,7 +9,8 @@ import java.util.Map;
 public class RoutingHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private final Map<String, RouteHandler> routes = Map.of(
-            "/hello", new HelloHandler()
+            "/hello", new HelloHandler(),
+            "/slow", new SlowHandler()
     );
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {

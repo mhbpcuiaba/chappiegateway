@@ -1,199 +1,126 @@
-# Netty Advanced Tuning Roadmap for Chappie Gateway
+# modules
 
-## Purpose
+chappie-core
+chappie-routing
+chappie-loadbalancer
+chappie-observability
+chappie-api
+chappie-websocket
 
-This document defines **when and why** to introduce advanced Netty tuning features while evolving Chappie Gateway from a simple proxy into a high-performance, resilient system.
 
----
 
-## Phase 1 — Foundation (NOW)
 
-### Goal
+# ChappieGateway Roadmap
 
-Build core functionality and understand Netty fundamentals.
+## Phase 1 - Single Gateway Node (Gateway Fundamentals)
 
-### Focus
+[DONE] Hello endpoint
+[DONE] Slow endpoint
 
-* HTTP server
-* Handlers (`GET /hello`, `/slow`, `/fail`, `/flaky`)
-* Upstream calls (mock first)
-* Basic request/response flow
+- Timeout
+- Retry
+- Circuit Breaker
+- Round Robin Load Balancer
+- Health Checks
+- Prometheus Metrics
+- wrk/k6 Benchmarking
 
-### Netty Usage
-
-* Use **default configuration only**
-* `NioEventLoopGroup()` with no customization
-
-### Why
-
-* Avoid premature optimization
-* Focus on learning:
-
-    * EventLoop
-    * ChannelPipeline
-    * Handlers
-
----
-
-## Phase 2 — Resilience Layer
-
-### Goal
-
-Make the gateway production-aware under failures.
-
-### Focus
-
-* Timeouts
-* Retries
-* Circuit breaker
-* Error mapping (502, 504)
-
-### Introduce
-
-#### RejectedExecutionHandler
-
-* Protects system under overload
-* Prevents task queue explosion
-
-### Example Scenario
-
-* Too many upstream calls
-* EventLoop queue fills
-* Reject tasks → return 503 instead of crashing
-
-### Why
-
-* First step into **backpressure and stability**
+Goals:
+- Netty fundamentals
+- Request lifecycle
+- Resiliency patterns
+- Upstream selection
+- Failure handling
+- Latency analysis
+- Gateway observability
 
 ---
 
-## Phase 3 — Load Distribution
+## Phase 2 - Gateway Cluster (Distributed Gateway)
 
-### Goal
+- 3 Gateway Nodes
+- 3 Upstream Nodes
+- Redis
 
-Understand and optimize how load is spread across threads.
+- Distributed Rate Limiter
+- Distributed Cache
+- Service Discovery
 
-### Focus
+- k6 Cluster Benchmarking
 
-* Benchmarking
-* Simulating concurrent traffic
-
-### Introduce
-
-#### EventExecutorChooserFactory
-
-* Controls how channels are assigned to EventLoops
-
-### Experiments
-
-* Round-robin (default)
-* Hash-based (e.g., per client/session)
-
-### Why
-
-* Affects:
-
-    * Throughput
-    * Fairness
-    * Latency distribution
+Goals:
+- Distributed state management
+- Consistency tradeoffs
+- Coordination between gateway nodes
+- Redis-based infrastructure patterns
+- Cluster load balancing
+- Horizontal scaling
 
 ---
 
-## Phase 4 — Performance Tuning
+## Phase 3 - WebSocket Gateway (RingCentral Path)
 
-### Goal
+- WebSocket Support
+- Redis Connection Registry
+- Redis Subscription Registry
+- Kafka Fanout
+- Presence Tracking
+- Topic/Channel Subscriptions
 
-Optimize latency vs CPU usage.
+- 100k+ Connections Benchmark
 
-### Focus
-
-* High-load scenarios
-* Latency-sensitive behavior
-
-### Introduce
-
-#### SelectStrategyFactory
-
-* Controls how EventLoop waits for I/O
-
-### Strategies
-
-* Blocking (default, efficient)
-* Busy-spin (low latency, high CPU)
-* Hybrid
-
-### Why
-
-* Trade-off:
-
-    * Lower latency vs higher CPU cost
+Goals:
+- Long-lived connections
+- Fanout architectures
+- Real-time systems
+- Connection management
+- Backpressure
+- Gateway-to-gateway coordination
 
 ---
 
-## Phase 5 — Advanced Runtime Control (Expert Level)
+## Phase 4 - Scale Testing
 
-### Goal
+- 10+ Gateway Nodes
+- Redis Cluster
+- Kafka Cluster
 
-Full control over execution model and backpressure.
+- 100k+ RPS
+- 100k+ Concurrent WebSocket Connections
 
-### Introduce
+- Capacity Planning
+- Cost Analysis
+- Failure Testing
+- Rolling Deployments
 
-#### EventLoopTaskQueueFactory
-
-* Customize task queues
-* Enable bounded queues
-* Implement stronger backpressure
-
-#### SelectorProvider
-
-* Customize Selector creation
-* OS-level tuning (rare use case)
-
-### Why
-
-* Fine-grained control over:
-
-    * Task scheduling
-    * Queue behavior
-    * System stability under extreme load
+Goals:
+- Production-scale validation
+- Capacity planning
+- Infrastructure economics
+- High availability
+- Large-scale distributed systems
 
 ---
 
-## Key Insight
+Target Architecture (RingCentral Dream Job)
 
-Netty exposes control over:
+API Gateway Cluster
+|
++-- Timeout
++-- Retry
++-- Circuit Breaker
++-- Load Balancing
++-- Service Discovery
 
-* I/O strategy
-* Thread assignment
-* Task scheduling
-* Backpressure
+WebSocket Gateway Cluster
+|
++-- Redis Connection Registry
++-- Kafka Fanout
++-- Presence
++-- Subscriptions
 
-This effectively allows you to **build a custom runtime for your gateway**.
-
----
-
-## Recommended Learning Path
-
-1. Build working gateway (Phase 1)
-2. Add failure scenarios (timeouts, retries)
-3. Simulate load
-4. Introduce RejectedExecutionHandler
-5. Experiment with thread distribution
-6. Benchmark and tune I/O strategy
-
----
-
-## When to Use This Document
-
-Use this roadmap when:
-
-* System starts failing under load
-* Latency becomes unpredictable
-* You need to scale beyond basic usage
-* You want to deeply understand Netty internals
-
----
-
-## Title to Remember
-
-**"Netty Evolution Path: From Simple Gateway to High-Performance Runtime"** 🚀
+Shared Infrastructure
+|
++-- Redis
++-- Kafka
++-- Prometheus

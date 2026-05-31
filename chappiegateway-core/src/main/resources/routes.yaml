@@ -5,6 +5,11 @@ routes:
     pathTemplate: /hello
     upstreamBaseUri: http://localhost:9000
 
+  - id: slow-route
+    methods: [GET]
+    pathTemplate: /slow
+    upstreamBaseUri: http://localhost:9000
+
   - id: users-route
     methods: [GET, POST]
     pathTemplate: /users/{id}
